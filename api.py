@@ -43,6 +43,10 @@ def get_catalog():
     finally:
         cur.close()
         conn.close()
+        
+@app.route("/version", methods=["GET"])
+def version():
+    return jsonify({"version": "new app file is live"})
 
 @app.route("/login", methods=["POST"])
 def login():
