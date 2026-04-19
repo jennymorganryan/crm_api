@@ -2,6 +2,7 @@ import os
 from flask import Flask, request, jsonify # type: ignore
 from flask_cors import CORS
 import pymysql
+from pymysql.cursors import DictCursor
 
 app = Flask(__name__)
 CORS(app)
