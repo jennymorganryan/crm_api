@@ -12,9 +12,8 @@ def get_connection():
         user=os.environ["MYSQLUSER"],
         password=os.environ["MYSQLPASSWORD"],
         database=os.environ["MYSQLDATABASE"],
-        port=int(os.environ["MYSQLPORT"]),
-        cursorclass=pymysql.cursors.DictCursor, # type: ignore
-        autocommit=False
+        port=int(os.environ.get("MYSQLPORT") or 3306),
+        cursorclass=DictCursor
     )
 
 def clear_results(cur):
