@@ -205,6 +205,16 @@ def signup():
     conn = get_connection()
     cur = conn.cursor()
     try:
+        existing = fetch_one_value(
+            cur,
+            "SELECT check_user_email(%s) AS exists",
+            (email,),
+            "exists"
+        )
+
+        if existing:
+            return error_response("Email already exists", 400)
+        
         cur.callproc("create_user", [email, password, is_customer_account])
         clear_results(cur)
 
@@ -302,7 +312,7 @@ def get_cart(user_id):
         order_id = get_open_order_id(cur, user_id)
 
         if order_id is None:
-            return success_response([])
+            return success_response({"cart": [], "message": "No open cart"})
 
         cur.callproc("view_order_cart", [order_id])
         rows = cur.fetchall()
@@ -522,9 +532,9 @@ def checkout():
         return error_response("All required customer info fields must be provided")
 
     try:
-        zip_code_int = int(zip_code)
+        zip_code_str = str(zip_code)
     except (TypeError, ValueError):
-        return error_response("zip_code must be numeric")
+        return error_response("zip_code must be valid")
 
     conn = get_connection()
     cur = conn.cursor()
@@ -544,7 +554,7 @@ def checkout():
                 street2,
                 city,
                 state,
-                zip_code_int,
+                zip_code_str,
                 country
             ]
         )
