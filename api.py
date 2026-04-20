@@ -42,6 +42,12 @@ def fetch_function_value(cur, query, params=None):
     row = cur.fetchone()
     return list(row.values())[0] if row else None
 
+@app.route("/", methods=["GET"])
+def root():
+    return jsonify({
+        "message": "Furniture CRM API is running",
+        "endpoints": ["/health", "/products", "/auth/login", ...]
+    }), 200
 
 @app.route("/health", methods=["GET"])
 def health():
@@ -256,4 +262,5 @@ def delete_review(review_id):
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
