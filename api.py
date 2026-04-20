@@ -15,11 +15,12 @@ def get_connection():
         raise ValueError("DATABASE_URL is not set")
 
     url = urlparse(database_url)
+
     return pymysql.connect(
         host=url.hostname,
         user=url.username,
         password=url.password,
-        database=url.path.lstrip("/"),
+        database="Jenny_Morgan_CRM",      
         port=url.port,
         cursorclass=DictCursor,
         autocommit=True
