@@ -23,7 +23,7 @@ def get_connection():
         host=url.hostname,
         user=url.username,
         password=url.password,
-        database="Jenny_Morgan_CRM",
+        database="jenny_morgan_crm",
         port=url.port,
         cursorclass=DictCursor,
         autocommit=False
@@ -500,7 +500,7 @@ def get_top_sellers():
     finally:
         cur.close()
         conn.close()
-        
+
 @app.route("/checkout", methods=["POST"])
 def checkout():
     data = request.get_json() or {}
