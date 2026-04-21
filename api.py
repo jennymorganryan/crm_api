@@ -149,7 +149,10 @@ def login():
     if not validate_account_type(account_type):
         return error_response("account_type must be 'customer' or 'business'")
 
-    is_customer_account = account_type == "customer"
+    is_customer_account = data.get("is_customer_account")
+
+    if not isinstance(is_customer_account, bool):
+        return error_response("is_customer_account must be true or false")
 
     conn = get_connection()
     cur = conn.cursor()
