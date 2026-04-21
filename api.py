@@ -192,18 +192,18 @@ def signup():
 
     email = data.get("email", "").strip().lower()
     password = data.get("password", "").strip()
-    account_type = data.get("account_type", "").strip().lower()
+    is_customer_account = data.get("is_customer_account")
 
     if not validate_email(email):
         return error_response("Valid email is required")
 
-    if not validate_password_for_signup(password):
-        return error_response("Password must be at least 13 characters long")
+    if not password:
+        return error_response("Password is required")
 
-    if not validate_account_type(account_type):
-        return error_response("account_type must be 'customer' or 'business'")
+    if not isinstance(is_customer_account, bool):
+        return error_response("is_customer_account must be true or false")
 
-    is_customer_account = account_type == "customer"
+    account_type = "customer" if is_customer_account else "business"
 
     conn = get_connection()
     cur = conn.cursor()
