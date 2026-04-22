@@ -251,13 +251,6 @@ def signup():
 
 @app.route("/customers/<string:user_id>", methods=["GET"])
 def get_customer(user_id):
-    data = request.get_json(silent=True) or {}
-    is_customer_account = data.get("is_customer_account")
-
-    error = require_customer_account(is_customer_account)
-    if error:
-        return error
-
     conn = get_connection()
     cur = conn.cursor()
     try:
