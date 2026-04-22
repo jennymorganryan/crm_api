@@ -34,6 +34,15 @@ def clear_results(cur):
     while cur.nextset():
         pass
 
+def require_customer_account(is_customer_account):
+    if not isinstance(is_customer_account, bool):
+        return error_response("is_customer_account must be true or false")
+
+    if not is_customer_account:
+        return error_response("Customer account required", 403)
+
+    return None
+
 
 def standardize_item_name(item_name):
     return " ".join(word.capitalize() for word in item_name.strip().split())
@@ -242,6 +251,13 @@ def signup():
 
 @app.route("/customers/<int:user_id>", methods=["GET"])
 def get_customer(user_id):
+    data = request.get_json(silent=True) or {}
+    is_customer_account = data.get("is_customer_account")
+
+    error = require_customer_account(is_customer_account)
+    if error:
+        return error
+
     conn = get_connection()
     cur = conn.cursor()
     try:
