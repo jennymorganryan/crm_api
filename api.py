@@ -676,11 +676,8 @@ def update_review_text(review_id):
 def update_review_rating(review_id):
     data = request.get_json() or {}
 
-    user_id = data.get("user_id")
     star_rating = data.get("star_rating")
 
-    if not user_id:
-        return error_response("user_id is required")
 
     if not validate_star_rating(star_rating):
         return error_response("star_rating must be greater than 0 and at most 5")
@@ -688,7 +685,7 @@ def update_review_rating(review_id):
     conn = get_connection()
     cur = conn.cursor()
     try:
-        cur.callproc("update_star_rating", [review_id, user_id, float(star_rating)])
+        cur.callproc("update_star_rating", [review_id, float(star_rating)])
         clear_results(cur)
         conn.commit()
 
