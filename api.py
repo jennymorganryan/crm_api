@@ -672,7 +672,7 @@ def update_review_text(review_id):
         conn.close()
 
 
-@app.route("/reviews/<string:review_id>/rating", methods=["PATCH"])
+@app.route("/reviews/<int:review_id>/rating", methods=["PATCH"])
 def update_review_rating(review_id):
     data = request.get_json() or {}
 
@@ -698,7 +698,7 @@ def update_review_rating(review_id):
         conn.close()
 
 
-@app.route("/reviews/<string:review_id>", methods=["DELETE"])
+@app.route("/reviews/<int:review_id>", methods=["DELETE"])
 def delete_review(review_id):
     data = request.get_json() or {}
     user_id = data.get("user_id")
