@@ -700,13 +700,11 @@ def delete_review(review_id):
     data = request.get_json() or {}
     user_id = data.get("user_id")
 
-    if not user_id:
-        return error_response("user_id is required")
 
     conn = get_connection()
     cur = conn.cursor()
     try:
-        cur.callproc("delete_review", [review_id, user_id])
+        cur.callproc("delete_review", [review_id])
         clear_results(cur)
         conn.commit()
 
