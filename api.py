@@ -647,11 +647,8 @@ def create_review():
 def update_review_text(review_id):
     data = request.get_json() or {}
 
-    user_id = data.get("user_id")
     new_review_text = data.get("review", "").strip()
 
-    if not user_id:
-        return error_response("user_id is required")
 
     if not validate_review_text(new_review_text):
         return error_response("Review must be between 100 and 999 characters")
@@ -659,7 +656,7 @@ def update_review_text(review_id):
     conn = get_connection()
     cur = conn.cursor()
     try:
-        cur.callproc("update_review", [review_id, user_id, new_review_text])
+        cur.callproc("update_review", [review_id, new_review_text])
         clear_results(cur)
         conn.commit()
 
