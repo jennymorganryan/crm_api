@@ -694,13 +694,8 @@ def update_review_rating(review_id):
         cur.close()
         conn.close()
 
-
 @app.route("/reviews/<int:review_id>", methods=["DELETE"])
 def delete_review(review_id):
-    data = request.get_json() or {}
-    user_id = data.get("user_id")
-
-
     conn = get_connection()
     cur = conn.cursor()
     try:
