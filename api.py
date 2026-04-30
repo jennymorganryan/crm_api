@@ -313,16 +313,11 @@ def get_eligible_reviews(user_id):
         conn.close()
 
 
-@app.route("/customers/<int:user_id>/cart", methods=["GET"])
-def get_cart(user_id):
+@app.route("/cart/<int:order_id>", methods=["GET"])
+def get_cart_by_order_id(order_id):
     conn = get_connection()
     cur = conn.cursor()
     try:
-        order_id = get_open_order_id(cur, user_id)
-
-        if order_id is None:
-            return success_response({"cart": [], "message": "No open cart"})
-
         cur.callproc("view_order_cart", [order_id])
         rows = cur.fetchall()
         clear_results(cur)
