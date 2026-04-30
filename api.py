@@ -249,15 +249,15 @@ def signup():
         conn.close()
 
 
-@app.route("/customers/<int:user_id>", methods=["GET"])
-def get_customer(user_id):
+@app.route("/orders/<int:order_id>", methods=["GET"])
+def get_order_by_order_id(order_id):
     conn = get_connection()
     cur = conn.cursor()
     try:
-        cur.callproc("show_customer_info", [user_id])
+        cur.callproc("view_order_cart", [order_id])
         rows = cur.fetchall()
         clear_results(cur)
-        return success_response(rows[0] if rows else {})
+        return success_response(rows)
     except Exception as e:
         return error_response(str(e), 500)
     finally:
