@@ -355,59 +355,6 @@ def get_cart_by_order_id(order_id):
         conn.close()
 
 
-@app.route("/cart/add", methods=["POST"])
-def add_to_cart():
-    data = request.get_json() or {}
-
-    user_id = data.get("user_id")
-    item_name = data.get("item_name", "").strip()
-    quantity = data.get("quantity", 1)
-
-    if not user_id:
-        return error_response("user_id is required")
-
-    if not item_name:
-        return error_response("item_name is required")
-
-    try:
-        quantity = int(quantity)
-        if quantity <= 0:
-            return error_response("quantity must be greater than 0")
-    except (TypeError, ValueError):
-        return error_response("quantity must be a valid integer")
-
-    item_name = standardize_item_name(item_name)
-
-    conn = get_connection()
-    cur = conn.cursor()
-    try:
-        order_id = get_open_order_id(cur, user_id)
-
-        if order_id is None:
-            cur.callproc("create_order_cart", [user_id])
-            result = cur.fetchall()
-            clear_results(cur)
-
-            if result and "new_order_id" in result[0]:
-                order_id = result[0]["new_order_id"]
-            else:
-                order_id = get_open_order_id(cur, user_id)
-
-        cur.callproc("upsert_cart_item", [order_id, item_name, quantity])
-        clear_results(cur)
-        conn.commit()
-
-        return success_response({
-            "message": "Item added to cart",
-            "order_id": order_id
-        })
-    except Exception as e:
-        conn.rollback()
-        return error_response(str(e), 500)
-    finally:
-        cur.close()
-        conn.close()
-
 
 @app.route("/cart/add", methods=["POST"])
 def add_to_cart():
