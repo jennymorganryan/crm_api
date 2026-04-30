@@ -312,6 +312,32 @@ def get_eligible_reviews(user_id):
         cur.close()
         conn.close()
 
+@app.route("/cart/<int:order_id>/attach-user", methods=["PATCH"])
+def attach_user_to_cart(order_id):
+    data = request.get_json() or {}
+    user_id = data.get("user_id")
+
+    if not user_id:
+        return error_response("user_id is required")
+
+    conn = get_connection()
+    cur = conn.cursor()
+    try:
+        cur.callproc("attach_user_to_cart", [order_id, user_id])
+        clear_results(cur)
+        conn.commit()
+
+        return success_response({
+            "message": "User attached to cart",
+            "order_id": order_id,
+            "user_id": user_id
+        })
+    except Exception as e:
+        conn.rollback()
+        return error_response(str(e), 500)
+    finally:
+        cur.close()
+        conn.close()
 
 @app.route("/cart/<int:order_id>", methods=["GET"])
 def get_cart_by_order_id(order_id):
@@ -519,7 +545,9 @@ def get_top_sellers():
 def checkout():
     data = request.get_json() or {}
 
-    user_id = data.get("user_id")
+    order_id = data.get("order_id")
+    user_id = data.get("user_id")  
+
     first_name = data.get("first_name", "").strip()
     last_name = data.get("last_name", "").strip()
     street1 = data.get("street1", "").strip()
@@ -529,8 +557,8 @@ def checkout():
     zip_code = data.get("zip_code")
     country = data.get("country", "").strip()
 
-    if not user_id:
-        return error_response("user_id is required")
+    if not order_id:
+        return error_response("order_id is required")
 
     if not all([first_name, last_name, street1, city, state, zip_code, country]):
         return error_response("All required customer info fields must be provided")
@@ -543,15 +571,17 @@ def checkout():
     conn = get_connection()
     cur = conn.cursor()
     try:
-        order_id = get_open_order_id(cur, user_id)
 
-        if order_id is None:
-            return error_response("No open cart found", 404)
+        if user_id:
+            cur.execute(
+                "UPDATE order_cart SET user_id = %s WHERE order_id = %s",
+                (user_id, order_id)
+            )
 
         cur.callproc(
             "create_customer_info",
             [
-                user_id,
+                user_id,  
                 first_name,
                 last_name,
                 street1,
@@ -563,6 +593,7 @@ def checkout():
             ]
         )
         clear_results(cur)
+
 
         cur.callproc("checkout_order", [order_id])
         clear_results(cur)
@@ -581,6 +612,7 @@ def checkout():
             "order_id": order_id,
             "delivery_date": str(delivery_date) if delivery_date else None
         })
+
     except Exception as e:
         conn.rollback()
         return error_response(str(e), 500)
