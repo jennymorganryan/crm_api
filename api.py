@@ -249,7 +249,7 @@ def signup():
         conn.close()
 
 
-@app.route("/customers/<string:user_id>", methods=["GET"])
+@app.route("/customers/<int:user_id>", methods=["GET"])
 def get_customer(user_id):
     conn = get_connection()
     cur = conn.cursor()
@@ -265,7 +265,7 @@ def get_customer(user_id):
         conn.close()
 
 
-@app.route("/customers/<string:user_id>/orders", methods=["GET"])
+@app.route("/customers/<int:user_id>/orders", methods=["GET"])
 def get_customer_orders(user_id):
     conn = get_connection()
     cur = conn.cursor()
@@ -281,7 +281,7 @@ def get_customer_orders(user_id):
         conn.close()
 
 
-@app.route("/customers/<string:user_id>/reviews", methods=["GET"])
+@app.route("/customers/<int:user_id>/reviews", methods=["GET"])
 def get_customer_reviews(user_id):
     conn = get_connection()
     cur = conn.cursor()
@@ -297,7 +297,7 @@ def get_customer_reviews(user_id):
         conn.close()
 
 
-@app.route("/customers/<string:user_id>/eligible-reviews", methods=["GET"])
+@app.route("/customers/<int:user_id>/eligible-reviews", methods=["GET"])
 def get_eligible_reviews(user_id):
     conn = get_connection()
     cur = conn.cursor()
@@ -313,7 +313,7 @@ def get_eligible_reviews(user_id):
         conn.close()
 
 
-@app.route("/customers/<string:user_id>/cart", methods=["GET"])
+@app.route("/customers/<int:user_id>/cart", methods=["GET"])
 def get_cart(user_id):
     conn = get_connection()
     cur = conn.cursor()
