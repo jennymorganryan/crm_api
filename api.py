@@ -409,16 +409,13 @@ def add_to_cart():
         conn.close()
 
 
-@app.route("/cart/update", methods=["PUT"])
-def update_cart_item():
+@app.route("/cart/add", methods=["POST"])
+def add_to_cart():
     data = request.get_json() or {}
 
-    user_id = data.get("user_id")
+    order_id = data.get("order_id")
     item_name = data.get("item_name", "").strip()
-    quantity = data.get("quantity")
-
-    if not user_id:
-        return error_response("user_id is required")
+    quantity = data.get("quantity", 1)
 
     if not item_name:
         return error_response("item_name is required")
@@ -435,17 +432,18 @@ def update_cart_item():
     conn = get_connection()
     cur = conn.cursor()
     try:
-        order_id = get_open_order_id(cur, user_id)
-
-        if order_id is None:
-            return error_response("No open cart found", 404)
+        if not order_id:
+            cur.callproc("create_order_cart")
+            result = cur.fetchall()
+            clear_results(cur)
+            order_id = result[0]["new_order_id"]
 
         cur.callproc("upsert_cart_item", [order_id, item_name, quantity])
         clear_results(cur)
         conn.commit()
 
         return success_response({
-            "message": "Cart updated successfully",
+            "message": "Item added to cart",
             "order_id": order_id
         })
     except Exception as e:
@@ -460,11 +458,11 @@ def update_cart_item():
 def delete_from_cart():
     data = request.get_json() or {}
 
-    user_id = data.get("user_id")
+    order_id = data.get("order_id")
     item_name = data.get("item_name", "").strip()
 
-    if not user_id:
-        return error_response("user_id is required")
+    if not order_id:
+        return error_response("order_id is required")
 
     if not item_name:
         return error_response("item_name is required")
@@ -474,11 +472,6 @@ def delete_from_cart():
     conn = get_connection()
     cur = conn.cursor()
     try:
-        order_id = get_open_order_id(cur, user_id)
-
-        if order_id is None:
-            return error_response("No open cart found", 404)
-
         cur.callproc("delete_cart_item", [order_id, item_name])
         clear_results(cur)
         conn.commit()
@@ -494,23 +487,18 @@ def delete_from_cart():
         cur.close()
         conn.close()
 
-
 @app.route("/cart/cancel", methods=["POST"])
 def cancel_cart():
     data = request.get_json() or {}
-    user_id = data.get("user_id")
 
-    if not user_id:
-        return error_response("user_id is required")
+    order_id = data.get("order_id")
+
+    if not order_id:
+        return error_response("order_id is required")
 
     conn = get_connection()
     cur = conn.cursor()
     try:
-        order_id = get_open_order_id(cur, user_id)
-
-        if order_id is None:
-            return error_response("No open cart found", 404)
-
         cur.callproc("cancel_open_cart_on_exit", [order_id])
         clear_results(cur)
         conn.commit()
