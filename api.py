@@ -280,6 +280,22 @@ def get_customer_orders(user_id):
         cur.close()
         conn.close()
 
+@app.route("/customers/<int:user_id>", methods=["GET"])
+def get_customer_info(user_id):
+    conn = get_connection()
+    cur = conn.cursor()
+    try:
+        cur.callproc("show_customer_info", [user_id])
+        rows = cur.fetchall()
+        clear_results(cur)
+
+        return success_response(rows[0] if rows else {})
+    except Exception as e:
+        return error_response(str(e), 500)
+    finally:
+        cur.close()
+        conn.close()
+
 
 @app.route("/customers/<int:user_id>/reviews", methods=["GET"])
 def get_customer_reviews(user_id):
