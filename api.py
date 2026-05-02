@@ -5,6 +5,9 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import pymysql
 from pymysql.cursors import DictCursor
+from review_recommendation_service import analyze_review_with_ai, build_ai_recommendations
+
+
 
 app = Flask(__name__)
 CORS(app)
@@ -33,15 +36,6 @@ def get_connection():
 def clear_results(cur):
     while cur.nextset():
         pass
-
-def require_customer_account(is_customer_account):
-    if not isinstance(is_customer_account, bool):
-        return error_response("is_customer_account must be true or false")
-
-    if not is_customer_account:
-        return error_response("Customer account required", 403)
-
-    return None
 
 
 def standardize_item_name(item_name):
@@ -74,10 +68,6 @@ def validate_account_type(account_type):
     return account_type in ("customer", "business")
 
 
-def validate_password_for_signup(password):
-    return bool(password) and len(password) >= 13
-
-
 def validate_star_rating(star_rating):
     try:
         rating = float(star_rating)
@@ -90,14 +80,137 @@ def validate_review_text(review_text):
     return isinstance(review_text, str) and 100 <= len(review_text.strip()) <= 999
 
 
-def get_open_order_id(cur, user_id):
-    return fetch_one_value(
-        cur,
-        "SELECT get_open_order_id(%s) AS order_id",
-        (user_id,),
-        "order_id"
-    )
 
+@app.route("/business/products/<int:sku>/recommendations/generate", methods=["POST"])
+def generate_product_recommendations(sku):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    try:
+        cur.callproc("get_reviews_for_product_analysis", [sku])
+        reviews = cur.fetchall()
+        clear_results(cur)
+
+        if not reviews:
+            return error_response("No reviews found for this product", 404)
+
+        cur.callproc("clear_product_review_analysis", [sku])
+        clear_results(cur)
+
+        findings = []
+
+        for row in reviews:
+            ai_findings = analyze_review_with_ai(
+                review_text=row["review"],
+                item_name=row.get("item_name"),
+                star_rating=float(row["star_rating"]) if row.get("star_rating") is not None else None
+            )
+
+            for finding in ai_findings:
+                saved_finding = {
+                    "review_id": row["review_id"],
+                    "sku": sku,
+                    "issue_category": finding.get("issue_category", "other"),
+                    "target_text": finding.get("target_text", ""),
+                    "assessment_text": finding.get("assessment_text", ""),
+                    "sentiment_label": finding.get("sentiment_label", "neutral"),
+                    "positive_score": finding.get("positive_score", 0),
+                    "neutral_score": finding.get("neutral_score", 0),
+                    "negative_score": finding.get("negative_score", 0),
+                    "key_phrases": finding.get("key_phrases", "")
+                }
+
+                findings.append(saved_finding)
+
+                cur.callproc("insert_review_ai_finding", [
+                    saved_finding["review_id"],
+                    saved_finding["sku"],
+                    saved_finding["issue_category"],
+                    saved_finding["target_text"],
+                    saved_finding["assessment_text"],
+                    saved_finding["sentiment_label"],
+                    saved_finding["positive_score"],
+                    saved_finding["neutral_score"],
+                    saved_finding["negative_score"],
+                    saved_finding["key_phrases"]
+                ])
+                clear_results(cur)
+
+        recommendations = build_ai_recommendations(findings, len(reviews))
+
+        for rec in recommendations:
+            cur.callproc("insert_product_improvement_recommendation", [
+                sku,
+                rec["issue_category"],
+                rec["recommendation_title"],
+                rec["recommendation_detail"],
+                rec["priority_level"],
+                rec["evidence_summary"],
+                rec["review_count"],
+                rec["mention_count"]
+            ])
+            clear_results(cur)
+
+        cur.callproc("mark_product_reviews_analyzed", [sku])
+        clear_results(cur)
+
+        conn.commit()
+
+        return success_response({
+            "message": "AI product improvement recommendations generated",
+            "sku": sku,
+            "review_count": len(reviews),
+            "finding_count": len(findings),
+            "recommendation_count": len(recommendations)
+        })
+
+    except Exception as e:
+        conn.rollback()
+        return error_response(str(e), 500)
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.route("/business/products/<int:sku>/recommendations", methods=["GET"])
+def get_product_recommendations(sku):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    try:
+        cur.callproc("get_product_improvement_recommendations", [sku])
+        rows = cur.fetchall()
+        clear_results(cur)
+
+        return success_response(rows)
+
+    except Exception as e:
+        return error_response(str(e), 500)
+
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.route("/business/products/<int:sku>/review-findings", methods=["GET"])
+def get_product_review_findings(sku):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    try:
+        cur.callproc("get_product_review_findings", [sku])
+        rows = cur.fetchall()
+        clear_results(cur)
+
+        return success_response(rows)
+
+    except Exception as e:
+        return error_response(str(e), 500)
+
+    finally:
+        cur.close()
+        conn.close()
 
 @app.route("/", methods=["GET"])
 def root():
