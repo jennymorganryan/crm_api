@@ -31,7 +31,7 @@ def clean_score(value):
 
 def analyze_review_with_ai(review_text, item_name=None, star_rating=None):
     message = client.messages.create(
-        model="claude-3-5-haiku-latest",
+        model="claude-haiku-4-5-20251001",
         max_tokens=1200,
         temperature=0.2,
         system="""
