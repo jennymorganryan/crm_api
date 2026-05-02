@@ -26,7 +26,7 @@ def get_connection():
         host=url.hostname,
         user=url.username,
         password=url.password,
-        database=url.path[1:],
+        database="jenny_morgan_crm",
         port=url.port,
         cursorclass=DictCursor,
         autocommit=False
