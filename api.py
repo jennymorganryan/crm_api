@@ -79,7 +79,46 @@ def validate_star_rating(star_rating):
 def validate_review_text(review_text):
     return isinstance(review_text, str) and 100 <= len(review_text.strip()) <= 999
 
+@app.route("/business/recommendations", methods=["GET"])
+def get_all_product_recommendations():
+    conn = get_connection()
+    cur = conn.cursor()
 
+    try:
+        cur.execute("""
+            SELECT
+                pir.recommendation_id,
+                pir.sku,
+                ii.item_name,
+                ii.furniture_type,
+                pir.issue_category,
+                pir.recommendation_title,
+                pir.recommendation_detail,
+                pir.priority_level,
+                pir.evidence_summary,
+                pir.review_count,
+                pir.mention_count,
+                pir.created_at
+            FROM product_improvement_recommendation pir
+            JOIN inventory_item ii ON pir.sku = ii.sku
+            ORDER BY
+                CASE pir.priority_level
+                    WHEN 'high' THEN 1
+                    WHEN 'medium' THEN 2
+                    WHEN 'low' THEN 3
+                    ELSE 4
+                END,
+                pir.created_at DESC
+        """)
+        rows = cur.fetchall()
+        return success_response(rows)
+
+    except Exception as e:
+        return error_response(str(e), 500)
+
+    finally:
+        cur.close()
+        conn.close()
 
 @app.route("/business/products/<int:sku>/recommendations/generate", methods=["POST"])
 def generate_product_recommendations(sku):
