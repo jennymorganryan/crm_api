@@ -85,32 +85,9 @@ def get_all_product_recommendations():
     cur = conn.cursor()
 
     try:
-        cur.execute("""
-            SELECT
-                pir.recommendation_id,
-                pir.sku,
-                ii.item_name,
-                ii.furniture_type,
-                pir.issue_category,
-                pir.recommendation_title,
-                pir.recommendation_detail,
-                pir.priority_level,
-                pir.evidence_summary,
-                pir.review_count,
-                pir.mention_count,
-                pir.created_at
-            FROM product_improvement_recommendation pir
-            JOIN inventory_item ii ON pir.sku = ii.sku
-            ORDER BY
-                CASE pir.priority_level
-                    WHEN 'high' THEN 1
-                    WHEN 'medium' THEN 2
-                    WHEN 'low' THEN 3
-                    ELSE 4
-                END,
-                pir.created_at DESC
-        """)
+        cur.callproc("get_all_product_improvement_recommendations")
         rows = cur.fetchall()
+        clear_results(cur)
         return success_response(rows)
 
     except Exception as e:
