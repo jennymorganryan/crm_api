@@ -131,7 +131,12 @@ def generate_all_product_recommendations():
                 ai_findings = analyze_review_with_ai(
                     review_text=row["review"],
                     item_name=row.get("item_name"),
-                    star_rating=float(row["star_rating"]) if row.get("star_rating") is not None else None
+                    star_rating = None
+                    if row.get("star_rating") not in (None, "", "null"):
+                        try:
+                            star_rating = float(row["star_rating"])
+                        except (TypeError, ValueError):
+                            star_rating = None
                 )
 
                 for finding in ai_findings:
