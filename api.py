@@ -97,6 +97,115 @@ def get_all_product_recommendations():
         cur.close()
         conn.close()
 
+
+@app.route("/business/recommendations/generate-all", methods=["POST"])
+def generate_all_product_recommendations():
+    conn = get_connection()
+    cur = conn.cursor()
+
+    try:
+        cur.execute("SELECT sku FROM inventory_item ORDER BY sku")
+        skus = [row["sku"] for row in cur.fetchall()]
+
+        results = []
+
+        for sku in skus:
+            cur.callproc("get_reviews_for_product_analysis", [sku])
+            reviews = cur.fetchall()
+            clear_results(cur)
+
+            if not reviews:
+                results.append({
+                    "sku": sku,
+                    "status": "skipped",
+                    "reason": "No reviews found"
+                })
+                continue
+
+            cur.callproc("clear_product_review_analysis", [sku])
+            clear_results(cur)
+
+            findings = []
+
+            for row in reviews:
+                ai_findings = analyze_review_with_ai(
+                    review_text=row["review"],
+                    item_name=row.get("item_name"),
+                    star_rating=float(row["star_rating"]) if row.get("star_rating") is not None else None
+                )
+
+                for finding in ai_findings:
+                    saved_finding = {
+                        "review_id": row["review_id"],
+                        "sku": sku,
+                        "issue_category": finding.get("issue_category", "other"),
+                        "target_text": finding.get("target_text", ""),
+                        "assessment_text": finding.get("assessment_text", ""),
+                        "sentiment_label": finding.get("sentiment_label", "neutral"),
+                        "positive_score": finding.get("positive_score", 0),
+                        "neutral_score": finding.get("neutral_score", 0),
+                        "negative_score": finding.get("negative_score", 0),
+                        "key_phrases": finding.get("key_phrases", "")
+                    }
+
+                    findings.append(saved_finding)
+
+                    cur.callproc("insert_review_ai_finding", [
+                        saved_finding["review_id"],
+                        saved_finding["sku"],
+                        saved_finding["issue_category"],
+                        saved_finding["target_text"],
+                        saved_finding["assessment_text"],
+                        saved_finding["sentiment_label"],
+                        saved_finding["positive_score"],
+                        saved_finding["neutral_score"],
+                        saved_finding["negative_score"],
+                        saved_finding["key_phrases"]
+                    ])
+                    clear_results(cur)
+
+            recommendations = build_ai_recommendations(findings, len(reviews))
+
+            for rec in recommendations:
+                cur.callproc("insert_product_improvement_recommendation", [
+                    sku,
+                    rec["issue_category"],
+                    rec["recommendation_title"],
+                    rec["recommendation_detail"],
+                    rec["priority_level"],
+                    rec["evidence_summary"],
+                    rec["review_count"],
+                    rec["mention_count"]
+                ])
+                clear_results(cur)
+
+            cur.callproc("mark_product_reviews_analyzed", [sku])
+            clear_results(cur)
+
+            results.append({
+                "sku": sku,
+                "status": "generated",
+                "review_count": len(reviews),
+                "finding_count": len(findings),
+                "recommendation_count": len(recommendations)
+            })
+
+        conn.commit()
+
+        return success_response({
+            "message": "AI recommendations generated for all products with reviews",
+            "product_count": len(skus),
+            "results": results
+        })
+
+    except Exception as e:
+        conn.rollback()
+        return error_response(str(e), 500)
+
+    finally:
+        cur.close()
+        conn.close()
+
 @app.route("/business/products/<int:sku>/recommendations/generate", methods=["POST"])
 def generate_product_recommendations(sku):
     conn = get_connection()
