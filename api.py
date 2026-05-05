@@ -391,7 +391,7 @@ def login():
 
     email = data.get("email", "").strip().lower()
     password = data.get("password", "").strip()
-    is_customer_account = data.get("is_customer_account")
+    is_user_account = data.get("is_user_account")
 
     if not validate_email(email):
         return error_response("Valid email is required")
@@ -399,10 +399,10 @@ def login():
     if not password:
         return error_response("Password is required")
 
-    if not isinstance(is_customer_account, bool):
-        return error_response("is_customer_account must be true or false")
+    if not isinstance(is_user_account, bool):
+        return error_response("is_user_account must be true or false")
 
-    account_type = "customer" if is_customer_account else "business"
+    account_type = "customer" if is_user_account else "business"
     
     conn = get_connection()
     cur = conn.cursor()
@@ -410,7 +410,7 @@ def login():
         login_valid = fetch_one_value(
             cur,
             "SELECT check_user_login(%s, %s, %s) AS valid",
-            (email, password, is_customer_account),
+            (email, password, is_user_account),
             "valid"
         )
 
@@ -420,7 +420,7 @@ def login():
         user_id = fetch_one_value(
             cur,
             "SELECT get_user_id_by_login(%s, %s, %s) AS user_id",
-            (email, password, is_customer_account),
+            (email, password, is_user_account),
             "user_id"
         )
 
@@ -442,7 +442,7 @@ def signup():
 
     email = data.get("email", "").strip().lower()
     password = data.get("password", "").strip()
-    is_customer_account = data.get("is_customer_account")
+    is_user_account = data.get("is_user_account")
 
     if not validate_email(email):
         return error_response("Valid email is required")
@@ -450,10 +450,10 @@ def signup():
     if not password:
         return error_response("Password is required")
 
-    if not isinstance(is_customer_account, bool):
-        return error_response("is_customer_account must be true or false")
+    if not isinstance(is_user_account, bool):
+        return error_response("is_user_account must be true or false")
 
-    account_type = "customer" if is_customer_account else "business"
+    account_type = "customer" if is_user_account else "business"
 
     conn = get_connection()
     cur = conn.cursor()
@@ -468,13 +468,13 @@ def signup():
         if existing:
             return error_response("Email already exists", 400)
         
-        cur.callproc("create_user", [email, password, is_customer_account])
+        cur.callproc("create_user", [email, password, is_user_account])
         clear_results(cur)
 
         user_id = fetch_one_value(
             cur,
             "SELECT get_user_id_by_login(%s, %s, %s) AS user_id",
-            (email, password, is_customer_account),
+            (email, password, is_user_account),
             "user_id"
         )
 
