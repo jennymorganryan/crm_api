@@ -460,9 +460,9 @@ def signup():
     try:
         existing = fetch_one_value(
             cur,
-            "SELECT check_user_email(%s) AS exists",
+            "SELECT check_user_email(%s) AS email_exists",
             (email,),
-            "exists"
+            "email_exists"
         )
 
         if existing:
